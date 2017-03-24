@@ -6,8 +6,15 @@ import java.sql.*;
  * Created by ghost9087 on 15/03/2017.
  */
 public class UserDao {
+
+    private ConnectionMaker connectionMaker;
+
+    public UserDao(ConnectionMaker connectionMaker){
+        this.connectionMaker = connectionMaker;
+    }
+
     public User get(Long id) throws ClassNotFoundException, SQLException {
-        Connection connection = getConnection();
+        Connection connection = connectionMaker.getConnection();
 
         PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM `userinfo` WHERE `id` = ?");
         preparedStatement.setLong(1, id);
@@ -28,7 +35,7 @@ public class UserDao {
     }
 
     public Long add(User user) throws ClassNotFoundException, SQLException {
-        Connection connection = getConnection();
+        Connection connection = connectionMaker.getConnection();
 
         PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO `userinfo`(`name`, `password`) VALUES(?,?)");
 
@@ -47,10 +54,5 @@ public class UserDao {
         connection.close();
 
         return id;
-    }
-
-    private Connection getConnection() throws ClassNotFoundException, SQLException {
-        Class.forName("com.mysql.jdbc.Driver");//Runtime Library
-        return DriverManager.getConnection("jdbc:mysql://localhost/jeju?characterEncoding=utf-8", "jeju", "jejupw1!");
     }
 }
