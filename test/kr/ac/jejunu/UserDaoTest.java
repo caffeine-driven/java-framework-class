@@ -54,4 +54,43 @@ public class UserDaoTest {
         assertThat(name, is(resultUser.getName()));
         assertThat(password, is(resultUser.getPassword()));
     }
+    @Test
+    public void update() throws SQLException, ClassNotFoundException {
+        User user = new User();
+        String name = "불곰";
+        user.setName(name);
+        String password = "1111";
+        user.setPassword(password);
+
+        Long id = userDao.add(user); //리턴값이 void라도 괜찮더라도 테스트를 위해 return을 주는것을 생각해볼것
+
+        String changedName = "김동하";
+        String changedPassword = "1234";
+        user.setId(id);
+        user.setName(changedName);
+        user.setPassword(changedPassword);
+
+        userDao.update(user);
+
+        User changedUser = userDao.get(id);
+
+        assertThat(id, is(changedUser.getId()));
+        assertThat(changedName, is(changedUser.getName()));
+        assertThat(changedPassword, is(changedUser.getPassword()));
+    }
+    @Test
+    public void delete() throws SQLException, ClassNotFoundException {
+        User user = new User();
+        String name = "불곰";
+        user.setName(name);
+        String password = "1111";
+        user.setPassword(password);
+
+        Long id = userDao.add(user); //리턴값이 void라도 괜찮더라도 테스트를 위해 return을 주는것을 생각해볼것
+
+        userDao.delete(id);
+
+        User deletedUser = userDao.get(id);
+        assertThat(deletedUser, nullValue());
+    }
 }
