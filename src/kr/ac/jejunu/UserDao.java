@@ -1,184 +1,66 @@
 package kr.ac.jejunu;
 
-import java.sql.*;
+import org.springframework.dao.DataAccessException;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
+import org.springframework.jdbc.support.KeyHolder;
+
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.sql.Statement;
 
 /**
  * Created by ghost9087 on 15/03/2017.
  */
 public class UserDao {
-
-    private ConnectionMaker connectionMaker;
-
-    public UserDao(ConnectionMaker connectionMaker){
-        this.connectionMaker = connectionMaker;
-    }
+    private JdbcTemplate jdbcTemplate;
 
     public User get(Long id) throws ClassNotFoundException, SQLException {
-        Connection connection = null;
-        PreparedStatement preparedStatement = null;
-        ResultSet resultSet = null;
-        User user = null;
+        String sql = "SELECT * FROM `userinfo` WHERE `id` = ?";
+        Object[] params = new Object[]{id};
+        User user1 = null;
         try {
-            connection = connectionMaker.getConnection();
-
-            StatementStrategy statementStrategy = new GetStatementStrategy();
-            preparedStatement = statementStrategy.makeStatement(id, connection);
-
-            resultSet = preparedStatement.executeQuery();
-
-            if (resultSet.next()) {
-                user = new User();
+            user1 = jdbcTemplate.queryForObject(sql, params, (resultSet, i) -> {
+                User user = new User();
                 user.setId(resultSet.getLong("id"));
                 user.setName(resultSet.getString("name"));
                 user.setPassword(resultSet.getString("password"));
-            }
-        } catch (ClassNotFoundException e) {
+                return user;
+            });
+        } catch (DataAccessException e) {
             e.printStackTrace();
-        } catch (SQLException e) {
-            e.printStackTrace();
-            throw e;
-        } finally {
-            if (resultSet != null) {
-                try {
-                    resultSet.close();//cursor를 entry point로부터 첫번째 결과가 있는 row로 이동
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
-            }
-            if (preparedStatement != null) {
-                try {
-                    preparedStatement.close();
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
-            }
-            if (connection != null) {
-                try {
-                    connection.close();
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
-            }
         }
-
-        return user;
+        return user1;
     }
 
     public Long add(User user) throws ClassNotFoundException, SQLException {
-        Connection connection = null;
-
-        ResultSet resultSet = null;
-        Long id = null;
-        PreparedStatement preparedStatement = null;
-        try {
-            connection = connectionMaker.getConnection();
-
-            StatementStrategy statementStrategy = new AddStatementStrategy();
-            preparedStatement = statementStrategy.makeStatement(user, connection);
-
-            preparedStatement.executeUpdate();
-
-            preparedStatement = connection.prepareStatement("SELECT last_insert_id()");
-            resultSet = preparedStatement.executeQuery();
-            resultSet.next();
-
-            id = resultSet.getLong(1);
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } finally {
-            if (resultSet != null) {
-                try {
-                    resultSet.close();
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
-            }
-            if (preparedStatement != null) {
-                try {
-                    preparedStatement.close();
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
-            }
-            if (connection != null) {
-                try {
-                    connection.close();
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-
-
-
-        return id;
+        String sql = "INSERT INTO `userinfo`(`name`, `password`) VALUES(?,?)";
+        Object[] params = new Object[]{user.getName(), user.getPassword()};
+        KeyHolder keyHolder = new GeneratedKeyHolder();
+        jdbcTemplate.update(connection -> {
+            PreparedStatement preparedStatement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+            preparedStatement.setString(1, user.getName());
+            preparedStatement.setString(2, user.getPassword());
+            return preparedStatement;
+        }, keyHolder);
+        return (Long) keyHolder.getKey();
     }
 
     public void update(User user) {
-        Connection connection = null;
-        PreparedStatement preparedStatement = null;
-        try {
-            connection = connectionMaker.getConnection();
+        String sql = "UPDATE `userinfo` set `name` = ?, `password` = ? WHERE `id`=?";
+        Object[] params = new Object[]{user.getName(), user.getPassword(), user.getId()};
 
-            StatementStrategy statementStrategy = new UpdateStatementStrategy();
-            preparedStatement = statementStrategy.makeStatement(user, connection);
-
-            preparedStatement.executeUpdate();
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } finally {
-            if (preparedStatement != null) {
-                try {
-                    preparedStatement.close();
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
-            }
-            if (connection != null) {
-                try {
-                    connection.close();
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
+        jdbcTemplate.update(sql, params);
     }
-
 
     public void delete(Long id) {
-        Connection connection = null;
-        PreparedStatement preparedStatement = null;
-        try {
-            connection = connectionMaker.getConnection();
+        String sql = "DELETE FROM `userinfo` WHERE `id` = ?";
+        Object[] params = new Object[] {id};
 
-            StatementStrategy statementStrategy = new DeleteStatementStrategy();
-            preparedStatement = statementStrategy.makeStatement(id, connection);
-
-            preparedStatement.executeUpdate();
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } finally {
-            if (preparedStatement != null) {
-                try {
-                    preparedStatement.close();
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
-            }
-            if (connection != null) {
-                try {
-                    connection.close();
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
+        jdbcTemplate.update(sql, params);
     }
 
+    public void setJdbcTemplate(JdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
+    }
 }
